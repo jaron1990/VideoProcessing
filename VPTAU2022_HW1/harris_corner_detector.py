@@ -6,8 +6,8 @@ from matplotlib import pyplot as plt
 
 
 # Replace ID1 and ID2 with your IDs.
-ID1 = '123456789'
-ID2 = '987654321'
+ID1 = '200865764'
+ID2 = '987654321' #TODO - Yael fill your ID
 
 # Harris corner detector parameters - you may change them.
 K = 0.05
@@ -58,7 +58,12 @@ def black_and_white_image_to_tiles(arr: np.ndarray, nrows: int,
     """INSERT YOUR CODE HERE.
     REPLACE THE RETURNED VALUE WITH YOUR OWN IMPLEMENTATION.
     """
-    return np.random.uniform(size=((h//nrows) * (w //ncols), nrows, ncols))
+    tiled_image = arr
+    tiled_image = tiled_image.reshape(h//nrows, nrows, -1, ncols)
+    tiled_image = tiled_image.swapaxes(1,2)
+    tiled_image = tiled_image.reshape(-1, nrows, ncols)
+
+    return tiled_image
 
 
 def image_tiles_to_black_and_white_image(arr: np.ndarray, h: int,
@@ -78,7 +83,13 @@ def image_tiles_to_black_and_white_image(arr: np.ndarray, h: int,
     """INSERT YOUR CODE HERE.
     REPLACE THE RETURNED VALUE WITH YOUR OWN IMPLEMENTATION.
     """
-    return np.random.uniform(size=(h, w))
+
+    image = arr
+    image = image.reshape(h//nrows, -1, nrows, ncols)
+    image = image.swapaxes(1,2)
+    image = image.reshape(h,w)
+
+    return image
 
 
 def test_tiles_functions(to_save: bool = False) -> None:
@@ -112,9 +123,8 @@ def test_tiles_functions(to_save: bool = False) -> None:
     else:
         plt.show()
 
-
-def create_grad_x_and_grad_y(
-        input_image: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+T =  [np.ndarray, np.ndarray] # TODO - return to original signature
+def create_grad_x_and_grad_y(input_image: np.ndarray) -> T:
     """Calculate the gradients across the x and y-axes.
 
     Args:
@@ -146,12 +156,20 @@ def create_grad_x_and_grad_y(
         # this is the case of an RGB image
         nof_color_channels = 3
         height, width, _ = input_image.shape
+        
+        cv2.cvtColor(input_image, cv2.COLOR_RGB2GRAY) # TODO - did not test it yet
 
     """INSERT YOUR CODE HERE.
     REPLACE THE VALUES FOR Ix AND Iy WITH THE GRADIENTS YOU COMPUTED.
     """
-    Ix = np.random.uniform(size=(height, width))
-    Iy = np.random.uniform(size=(height, width))
+    image_shift_x = np.concatenate([input_image[:,1:], np.zeros([height,1])], axis=1)
+    image_shift_y = np.concatenate([input_image[1:], np.zeros([1,width])], axis=0)
+    Ix = image_shift_x-input_image
+    Iy = image_shift_y-input_image
+    
+    Ix[:,0] = 0
+    Iy[0] = 0
+    
     return Ix, Iy
 
 
@@ -184,8 +202,16 @@ def calculate_response_image(input_image: np.ndarray, K: float) -> np.ndarray:
 
     """INSERT YOUR CODE HERE.
     REPLACE THE resonse_image WITH THE RESPONSE IMAGE YOU CALCULATED."""
+    g = np.ones([5,5])
+    Sxx = signal.convolve2d(Ix*Ix, g, 'same')
+    Syy = signal.convolve2d(Iy*Iy, g, 'same')
+    Sxy = signal.convolve2d(Ix*Iy, g, 'same')
 
-    response_image = np.random.uniform(size=Ix.shape)
+    det_M = Sxx*Syy - Sxy*Sxy
+    trace_M = Sxx+Syy
+
+    response_image = det_M - K*np.power(trace_M,2)
+
     return response_image
 
 
